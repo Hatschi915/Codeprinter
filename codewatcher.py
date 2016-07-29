@@ -13,11 +13,12 @@ jpg=".jpg"
 xml=".xml"
 temp="temp.jpg"
 Breeze="Breeze Kiosk"
+max_retries = 99999999
 ###############
 
 ###Settings###
 photoResize = 384, 256
-ImageFile.LOAD_TRUNCATED_IMAGES = True
+ImageFile.LOAD_TRUNCATED_IMAGES = False
 ser=serial.Serial('/dev/ttyS0', 19200)
 ser.flush()
 #time.sleep(1)
@@ -53,12 +54,14 @@ subprocess.call("sudo rm /home/pi/codeprinter/*", shell=True)
 
 class MyHandler(FileSystemEventHandler):
     def on_created(self, event):
-        #time.sleep(5)
+        
+        size2 = -1
         asd = event.src_path
-        print ("---start---")
+        print "Image added"+asd
         fileType = asd[-4:]
         kioskMode = asd[21:33]
         asd1 = asd[:-4]
+        print fileType
         if fileType == jpg and kioskMode != Breeze:
             num = len(asd1)
             asd3 = num-8
@@ -72,12 +75,16 @@ class MyHandler(FileSystemEventHandler):
             ser.write(line3+"\n")
             ser.write(lineFotoPin+asd1+"\n")
             ser.write(line4+"\n")
-            time.sleep(WaitBeforePrinting)
-            temp = Image.open(asd).resize(photoResize)
-            temp.save('temp.jpg')      
+            while True:
+                try:
+                    temp = Image.open(asd).resize(photoResize)
+                    temp.save('temp.jpg')
+                except IOError:
+                   print "transfer not complete"
+                   continue                   
+                break     
             os.system("lp temp.jpg")  
             time.sleep(8)#wait for CUPS to complete the print
-            #ser.write("--------------------------------")
             ser.write(line5+"\n")
             ser.write(line6+"\n")
             ser.write(line7+"\n")
